@@ -1,0 +1,15 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/OWNER/REPO/security/advisories/new
+    about: >-
+      Report proof forgery, circuit soundness bugs, authorization bypasses, or
+      fund-loss paths privately. Do NOT open a public issue. See SECURITY.md.
+  - name: Contributor backlog
+    url: https://github.com/OWNER/REPO/tree/main/issues
+    about: >-
+      Curated, pre-scoped work items with context and acceptance criteria. Claim
+      one before starting.
+  - name: Question / discussion
+    url: https://github.com/OWNER/REPO/discussions
+    about: Design questions and usage help.
