@@ -18,6 +18,8 @@ This repository contains the ZK circuits (Circom) and the Soroban smart contract
 - [Deploying to testnet](#deploying-to-testnet)
 - [Key management](#key-management)
 - [Security notes](#security-notes)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## How it works
 
@@ -234,3 +236,21 @@ stellar keys fund deployer --network testnet        # faucet
 - The Groth16 trusted setup performed by `setup.sh` uses a single, scripted Phase 2 contribution — fine for a hackathon/demo, **not** a production-grade multi-party ceremony. Do not treat these zkeys as trustworthy for real funds.
 - `execute_payroll` and administrative functions are gated by `require_auth()` on the stored admin address; `claim_payout` requires the recipient's own signature, so a payout can only be pulled by the employee it belongs to.
 - Nullifiers are the sole replay defense on both contracts — reusing a nullifier value across unrelated employees or epochs will cause either a false `NullifierSpent` rejection or (if you deliberately construct a collision) a valid payout for the wrong signals, since the contracts trust the proof to bind the nullifier to the right inputs. Circuit correctness is the actual security boundary; the on-chain contracts assume the proof is sound.
+
+To report a vulnerability, follow [`SECURITY.md`](SECURITY.md) — do not open a public issue. A record of a prior internal audit is in [`SECURITY_AUDIT_REPORT.md`](SECURITY_AUDIT_REPORT.md).
+
+## Contributing
+
+Contributions are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
+development setup, coding standards, and PR process, and see the
+[`issues/`](issues/) directory for a curated, pre-scoped backlog (security
+hardening, test coverage, circuit fixes, tooling) — each file has full context
+and acceptance criteria. All participants are expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). See [`NOTICE`](NOTICE) for
+attribution and third-party components — note that the snarkjs-generated
+`build/solidity_ref/*.sol` reference files are GPL-3.0 and are not part of the
+deployed system.
