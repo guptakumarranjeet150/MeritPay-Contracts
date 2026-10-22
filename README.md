@@ -209,8 +209,10 @@ To prevent accidental contract lockouts from mistyped addresses or unintended as
 #### 4. Payroll contract migration & epoch continuity
 If the claim contract must be re-linked to an updated payroll contract:
 1. Admin proposes new payroll contract via `propose_payroll_contract(admin, new_payroll)`.
-2. After `ROTATION_DELAY_LEDGERS` elapses, admin executes `execute_payroll_contract(admin)`.
-3. **Epoch Continuity Invariant**: Execution strictly requires that `new_payroll.get_epoch() >= current_payroll.get_epoch()`. This prevents epoch regression that would desynchronize or block valid employee claims for earlier epochs.
+2. After `ROTATION_DELAY_LEDGERS` (~24 hours / 17,280 ledgers) elapses, admin executes `execute_payroll_contract(admin)`.
+3. **Epoch Continuity Invariant**: Execution strictly requires that `new_payroll.get_epoch() >= current_payroll.get_epoch()`. Note that this epoch check prevents regression but not inflation; the timelock is what makes that visible and provides claimants an exit window to settle existing earnings before migration completes.
+4. **Resilient Emergency Migration**: `execute_payroll_contract` queries the current payroll contract via `try_get_epoch()` with safe fallback to `last_seen_epoch` stored in `ClaimContract`. If the old payroll contract is broken, unresponsive, or permanently trapping (frequently the exact incident necessitating migration), migration execution does not trap and proceeds smoothly.
+5. **Pause-Timelock Protection**: `set_paused` halts claim withdrawals instantly. To eliminate any loophole where an admin could propose a rotation, pause the contract for the full delay duration, execute the rotation, and unpause without granting claimants their exit window, pausing immediately cancels and clears any active pending rotation, and execution is strictly rejected if the contract was paused subsequent to the proposal.
 
 #### 5. Token immutability
 The pool token address (`token`) is intentionally immutable on both contracts once set in `initialize`. Allowing token rotation would compromise escrow invariants and create asset-substitution attack vectors. Supporting a new token requires deploying fresh contract instances.
