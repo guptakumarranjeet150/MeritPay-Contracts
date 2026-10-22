@@ -1149,13 +1149,36 @@ mod tests {
     #[test]
     fn test_payroll_admin_auth_verification() {
         let env = Env::default();
-        let (admin, payroll_id, _xlm_id, _claim_id) = setup_ok(&env);
+        let (admin, payroll_id, _xlm_id, claim_id) = setup_ok(&env);
         let client = PayrollContractClient::new(&env, &payroll_id);
 
-        client.set_paused(&admin, &true);
+        let candidate = Address::generate(&env);
+        let new_ver = env.register(mock_ok::MockOk, ());
+        let vk_hash = BytesN::from_array(&env, &[0xAAu8; 32]);
 
-        let auths = env.auths();
-        assert!(!auths.is_empty());
-        assert_eq!(auths[0].0, admin);
+        // 1. set_paused
+        client.set_paused(&admin, &true);
+        assert_eq!(env.auths()[0].0, admin);
+        client.set_paused(&admin, &false);
+
+        // 2. transfer_admin
+        client.transfer_admin(&admin, &candidate);
+        assert_eq!(env.auths()[0].0, admin);
+
+        // 3. cancel_admin_transfer
+        client.cancel_admin_transfer(&admin);
+        assert_eq!(env.auths()[0].0, admin);
+
+        // 4. set_verifier
+        client.set_verifier(&admin, &new_ver, &Some(vk_hash.clone()));
+        assert_eq!(env.auths()[0].0, admin);
+
+        // 5. set_verifier_vk_hash
+        client.set_verifier_vk_hash(&admin, &vk_hash);
+        assert_eq!(env.auths()[0].0, admin);
+
+        // 6. set_claim_contract
+        client.set_claim_contract(&admin, &claim_id);
+        assert_eq!(env.auths()[0].0, admin);
     }
 }
