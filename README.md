@@ -222,6 +222,57 @@ node scripts/upload_vk.js build/payroll/payroll_aggregator_vkey.json <VERIFIER_C
 node scripts/upload_vk.js build/claim/claim_vkey.json <CLAIM_VERIFIER_CONTRACT_ID>
 ```
 
+## Configuration Management & Admin Rotation
+
+Both the `payroll` and `claim` contracts support live configuration management, emergency controls, and non-destructive administrator handoff without requiring redeployment.
+
+### 1. Two-Step Admin Rotation
+To prevent bricking contracts by setting an unusable or mistyped address, administrator privileges use a two-step transfer pattern:
+1. Current admin initiates transfer:
+   ```bash
+   # On payroll contract
+   stellar contract invoke --id <PAYROLL_ID> --source admin -- transfer_admin --admin <CURRENT_ADMIN> --new_admin <NEW_ADMIN>
+   # On claim contract
+   stellar contract invoke --id <CLAIM_ID> --source admin -- transfer_admin --admin <CURRENT_ADMIN> --new_admin <NEW_ADMIN>
+   ```
+2. New admin claims privileges:
+   ```bash
+   stellar contract invoke --id <PAYROLL_ID> --source new_admin -- accept_admin --new_admin <NEW_ADMIN>
+   stellar contract invoke --id <CLAIM_ID> --source new_admin -- accept_admin --new_admin <NEW_ADMIN>
+   ```
+The current administrator retains authority until `accept_admin` is executed by the designated `new_admin`.
+
+### 2. Verifier Rotation (Circuit Upgrades)
+When circuits are updated or a new `Groth16Verifier` contract is deployed:
+```bash
+# Point payroll contract to the new verifier
+stellar contract invoke --id <PAYROLL_ID> --source admin -- set_verifier --admin <ADMIN> --new_verifier <NEW_VERIFIER_ID>
+# Point claim contract to the new verifier
+stellar contract invoke --id <CLAIM_ID> --source admin -- set_verifier --admin <ADMIN> --new_verifier <NEW_VERIFIER_ID>
+```
+
+### 3. Emergency Pause
+In the event of an incident or planned migration, contracts can be paused by the administrator:
+```bash
+stellar contract invoke --id <PAYROLL_ID> --source admin -- set_paused --admin <ADMIN> --paused true
+stellar contract invoke --id <CLAIM_ID> --source admin -- set_paused --admin <ADMIN> --paused true
+```
+While paused, `execute_payroll` and `fund_pool` on `payroll`, and `claim_payout` on `claim` will reject transactions with `ContractPaused`. Resume execution with `--paused false`.
+
+### 4. Configuration Getters
+Off-chain tooling, frontends, and auditors can query all contract configuration states directly without parsing raw ledger entries:
+- `get_admin() -> Address`
+- `get_verifier() -> Address`
+- `get_token() -> Address`
+- `get_claim_contract() -> Address` (on `payroll`)
+- `get_payroll_contract() -> Address` (on `claim`)
+- `get_vk_hash() -> BytesN<32>` (on `payroll`)
+- `is_paused() -> bool`
+- `get_pending_admin() -> Address`
+
+### 5. Token Immutability Rationale
+The SEP-41 payout token address (`token`) is immutable after initialization. Allowing arbitrary token substitution on live contracts would orphan unwithdrawn escrow balances and invalidate locked funds. To switch payment tokens, deploy a new contract instance and migrate through standard escrow settlement.
+
 ## Key management
 
 ```bash
